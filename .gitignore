@@ -1,0 +1,11 @@
+
+# Eclipse Project files
+.project
+.cproject
+.settings
+
+# VSCode Files
+.vscode
+
+# My commonly used build diretory
+build*
