@@ -12,7 +12,7 @@ High Order Parallel Interpolation
 
 ## Introduction
 HOPI is a [C++20](https://en.wikipedia.org/wiki/C%2B%2B20) library for
-parallel interpolation of quantities using high order radila basis functions.
+parallel interpolation of quantities using high order radial basis functions.
 
 ## Getting Started
 
