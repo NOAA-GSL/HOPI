@@ -16,6 +16,14 @@ parallel interpolation of quantities using high order radial basis functions.
 
 ## Getting Started
 
+### Requirments
+1. [CMake](https://cmake.org/) 
+   * Version >= 3.20.0
+2. [Boost Libraries](https://www.boost.org/) w/MPI
+   * Version >= 1.79.0
+3. Modern C++ Compiler
+   * Version >= C++20
+
 ### Building Using CMake
 The build system uses traditional CMake commands with 
 only a handfull of user defined variables to control the 
