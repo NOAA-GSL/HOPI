@@ -12,9 +12,9 @@
  */
 
 #include "hopi/mpixx.hpp"
-#include "partition/types.hpp"
 #include "partition/adaptor.hpp"
 #include "partition/rcb.hpp"
+#include "partition/types.hpp"
 
 #include <cstdlib>
 #include <iostream>
@@ -49,15 +49,14 @@ duplicate_vector(const std::size_t ndup, const std::size_t ndim, IndexedType& xy
     }
 }
 
-struct UserTypes {
-    static constexpr std::size_t NDim = 3;
 
-    using size_type       = std::size_t;
-    using difference_type = std::ptrdiff_t;
-    using coordinate_type = double;
-    using rank_type       = int;
-    using weight_type     = double;
-};
+template<typename IndexedType, typename ValueType>
+void
+fill_function(IndexedType& xyz, ValueType& values)
+{
+    // Stub For Now
+}
+
 
 
 
@@ -74,26 +73,33 @@ main(int argc, char* argv[])
     //                   Bogus Data (Testing Only)
     // ============================================================
 
-    constexpr std::size_t ND    = UserTypes::NDim;  // # of Dimensions
-    //constexpr std::size_t Nt    = 1000;  // # of Target Points
+    using CoordinateType = double;
+
+    constexpr std::size_t ND    = 3;     // # of Dimensions
+    constexpr std::size_t Nt    = 1000;  // # of Target Points
     constexpr std::size_t Ns    = 1000;  // # of Source Points
     constexpr std::size_t Nc    = 50;    // # of Points in Cloud
     constexpr std::size_t Ntdup = 3;     // # of Target Duplicates
     constexpr std::size_t Nsdup = 5;     // # of Source Duplicates
 
-    const std::size_t Nt = 10000 / num_ranks;
-
     // Init Data
-    std::vector<UserTypes::coordinate_type> target_xyz(Nt * ND);
-    std::vector<UserTypes::coordinate_type> source_xyz(Ns * ND);
+    std::vector<CoordinateType> target_xyz(Nt * ND);
+    std::vector<CoordinateType> source_xyz(Ns * ND);
 
     // Fill Random Targets & Sources
-    fill_random<UserTypes::coordinate_type>(target_xyz, { -100, 100 });
-    fill_random<UserTypes::coordinate_type>(source_xyz, { -100, 100 });
+    fill_random<CoordinateType>(target_xyz, { -100, 100 });
+    fill_random<CoordinateType>(source_xyz, { -100, 100 });
+
+    // Init Known Solution
+    std::vector<CoordinateType> source_soln(Nt * ND);
+
+    // Fill Known Solution    
+    fill_function(source_xyz, source_soln);
 
     // Insert duplicates into the data (simulates GeoFLOW)
     // duplicate_vector(Ntdup, ND, target_xyz);
     // duplicate_vector(Nsdup, ND, source_xyz);
+    // duplicate_vector(Nsdup, ND, source_soln);
 
     // ============================================================
     //                 End Bogus Data (Testing Only)
@@ -112,17 +118,33 @@ main(int argc, char* argv[])
     using Partitioner  = hopi::partition::RCB<InputAdaptor>;
 
     auto data_adaptor = InputAdaptor(Nt, target_xyz.data(), ND, target_xyz.data() + 1, ND, target_xyz.data() + 2, ND, nullptr, 1);
+
     Partitioner partitioner(world);
     partitioner.init(data_adaptor);
+    // partition.report(Nt, target_xyz.data(), ND, target_xyz.data() + 1, ND, target_xyz.data() + 2, ND, nullptr, 1);
 
-    //partition.report(Nt, target_xyz.data(), ND, target_xyz.data() + 1, ND, target_xyz.data() + 2, ND, nullptr, 1);
+    std::vector<int> rank_for_each_point(data_adaptor.size());
+    partitioner.part(data_adaptor, rank_for_each_point);
 
     // ----------------------------------------------------------
     // Build Gather/Scatter Data Structures
     // ----------------------------------------------------------
-    
-    std::vector<int> rank_for_each_point(data_adaptor.size());
-    partitioner.part(data_adaptor, rank_for_each_point);
+
+    GlobalExchange exchange(world);
+    exchange.init(rank_for_each_point); // Maybe this should take RCB ?
+
+    // ----------------------------------------------------------
+    // Build Interpolator
+    // ----------------------------------------------------------
+
+    Interpolator interp(world, exchange);
+
+    // ----------------------------------------------------------
+    // Use Interpolator
+    // ----------------------------------------------------------
+
+    interp.calc(source_values, target_values);
+
 
 
     std::cout << "P:" << my_rank << " -- DONE-- " << std::endl;

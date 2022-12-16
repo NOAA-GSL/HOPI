@@ -30,6 +30,7 @@ class RCB final {
     static constexpr auto NDim = InputAdaptor::NDim;
 
    public:
+    using adaptor_type    = InputAdaptor;
     using size_type       = typename InputAdaptor::size_type;
     using difference_type = typename InputAdaptor::difference_type;
     using coordinate_type = typename InputAdaptor::coordinate_type;
@@ -53,25 +54,9 @@ class RCB final {
     // Methods
     // ----------------------------------------------------------
    public:
-    void init(const size_type        local_count,
-              const coordinate_type* x,
-              const difference_type  xinc,
-              const coordinate_type* y,
-              const difference_type  yinc,
-              const coordinate_type* z,
-              const difference_type  zinc,
-              const weight_type*     w,
-              const difference_type  winc);
+    void init(const adaptor_type& adapt);
 
-    void report(const size_type        local_count,
-                const coordinate_type* x,
-                const difference_type  xinc,
-                const coordinate_type* y,
-                const difference_type  yinc,
-                const coordinate_type* z,
-                const difference_type  zinc,
-                const weight_type*     w,
-                const difference_type  winc) const;
+    void report(const adaptor_type& adapt) const;
 
     // ----------------------------------------------------------
     // [PRIVATE]
@@ -100,16 +85,19 @@ RCB<A>::~RCB()
 
 template<typename A>
 void
-RCB<A>::init(const size_type        local_count,
-             const coordinate_type* x,
-             const difference_type  xinc,
-             const coordinate_type* y,
-             const difference_type  yinc,
-             const coordinate_type* z,
-             const difference_type  zinc,
-             const weight_type*     w,
-             const difference_type  winc)
+RCB<A>::init(const adaptor_type& adapt)
 {
+    // TODO: Replace Below Wrappers
+    auto x    = adapt.x_;
+    auto y    = adapt.y_;
+    auto z    = adapt.z_;
+    auto w    = adapt.w_;
+    auto xinc = adapt.xinc_;
+    auto yinc = adapt.yinc_;
+    auto zinc = adapt.zinc_;
+    auto winc = adapt.winc_;
+    // TODO: Replace Above Wrappers
+
     // Copy the Weights or assign 1
     std::vector<weight_type> weight(local_count, 1);
     if (nullptr != w) {
@@ -275,16 +263,19 @@ RCB<A>::init(const size_type        local_count,
 
 template<typename A>
 void
-RCB<A>::report(const size_type        local_count,
-               const coordinate_type* x,
-               const difference_type  xinc,
-               const coordinate_type* y,
-               const difference_type  yinc,
-               const coordinate_type* z,
-               const difference_type  zinc,
-               const weight_type*     w,
-               const difference_type  winc) const
+RCB<A>::report(const adaptor_type& adapt) const
 {
+    // TODO: Replace Below Wrappers
+    auto x    = adapt.x_;
+    auto y    = adapt.y_;
+    auto z    = adapt.z_;
+    auto w    = adapt.w_;
+    auto xinc = adapt.xinc_;
+    auto yinc = adapt.yinc_;
+    auto zinc = adapt.zinc_;
+    auto winc = adapt.winc_;
+    // TODO: Replace Above Wrappers
+
     // Copy the Weights or assign 1
     std::vector<weight_type> weight(local_count, 1);
     if (nullptr != w) {
