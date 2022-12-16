@@ -5,14 +5,16 @@
  * Date:            Dec 6, 2022
  * Author:          Bryan Flynt
  * -----
- * Last Modified:   Dec 12, 2022
+ * Last Modified:   Dec 16, 2022
  * Modified By:     Bryan Flynt
  * -----
  * Copyright:       See LICENSE file
  */
 
 #include "hopi/mpixx.hpp"
-#include "hopi/partition.hpp"
+#include "partition/types.hpp"
+#include "partition/adaptor.hpp"
+#include "partition/rcb.hpp"
 
 #include <cstdlib>
 #include <iostream>
@@ -102,13 +104,26 @@ main(int argc, char* argv[])
     // ----------------------------------------------------------
 
     // ----------------------------------------------------------
-    // Create Search Data Structure for Targets
+    // Partition Domain Using Target Locations
     // ----------------------------------------------------------
 
-    hopi::Partition<UserTypes> partition(world);
-    partition.init(Nt, target_xyz.data(), ND, target_xyz.data() + 1, ND, target_xyz.data() + 2, ND, nullptr, 1);
+    using InputTypes   = hopi::partition::Types<double>;
+    using InputAdaptor = hopi::partition::WeightedAdaptor3D<InputTypes>;
+    using Partitioner  = hopi::partition::RCB<InputAdaptor>;
 
-    partition.report(Nt, target_xyz.data(), ND, target_xyz.data() + 1, ND, target_xyz.data() + 2, ND, nullptr, 1);
+    auto data_adaptor = InputAdaptor(Nt, target_xyz.data(), ND, target_xyz.data() + 1, ND, target_xyz.data() + 2, ND, nullptr, 1);
+    Partitioner partitioner(world);
+    partitioner.init(data_adaptor);
+
+    //partition.report(Nt, target_xyz.data(), ND, target_xyz.data() + 1, ND, target_xyz.data() + 2, ND, nullptr, 1);
+
+    // ----------------------------------------------------------
+    // Build Gather/Scatter Data Structures
+    // ----------------------------------------------------------
+    
+    std::vector<int> rank_for_each_point(data_adaptor.size());
+    partitioner.part(data_adaptor, rank_for_each_point);
+
 
     std::cout << "P:" << my_rank << " -- DONE-- " << std::endl;
     return EXIT_SUCCESS;

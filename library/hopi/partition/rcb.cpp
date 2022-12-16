@@ -5,15 +5,11 @@
  * Date:            Dec 6, 2022
  * Author:          Bryan Flynt
  * -----
- * Last Modified:   Dec 6, 2022
+ * Last Modified:   Dec 16, 2022
  * Modified By:     Bryan Flynt
  * -----
  * Copyright:       See LICENSE file
  */
 
-#include "hopi/partition.hpp"
+#include "hopi/partition/rcb.hpp"
 
-namespace hopi {
-
-
-} /* namespace hopi */

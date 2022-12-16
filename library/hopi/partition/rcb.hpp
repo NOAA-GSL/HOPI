@@ -5,7 +5,7 @@
  * Date:            Dec 6, 2022
  * Author:          Bryan Flynt
  * -----
- * Last Modified:   Dec 12, 2022
+ * Last Modified:   Dec 16, 2022
  * Modified By:     Bryan Flynt
  * -----
  * Copyright:       See LICENSE file
@@ -23,7 +23,7 @@
 namespace hopi {
 
 template<typename InputAdaptor>
-class Partition final {
+class RCB final {
     // ----------------------------------------------------------
     // Types
     // ----------------------------------------------------------
@@ -40,14 +40,14 @@ class Partition final {
     // Constructors and Operators
     // ----------------------------------------------------------
    public:
-    Partition()                       = delete;
-    Partition(const Partition& other) = default;
-    Partition(Partition&& other)      = default;
-    ~Partition();
-    Partition& operator=(const Partition& other) = default;
-    Partition& operator=(Partition&& other)      = default;
+    RCB()                            = delete;
+    RCB(const RCB& other)            = default;
+    RCB(RCB&& other)                 = default;
+    ~RCB()                           = default;
+    RCB& operator=(const RCB& other) = default;
+    RCB& operator=(RCB&& other)      = default;
 
-    Partition(const mpixx::communicator& comm);
+    RCB(const mpixx::communicator& comm);
 
     // ----------------------------------------------------------
     // Methods
@@ -89,26 +89,26 @@ class Partition final {
 };
 
 template<typename A>
-Partition<A>::Partition(const mpixx::communicator& comm) : m_comm(comm)
+RCB<A>::RCB(const mpixx::communicator& comm) : m_comm(comm)
 {
 }
 
 template<typename A>
-Partition<A>::~Partition()
+RCB<A>::~RCB()
 {
 }
 
 template<typename A>
 void
-Partition<A>::init(const size_type        local_count,
-                   const coordinate_type* x,
-                   const difference_type  xinc,
-                   const coordinate_type* y,
-                   const difference_type  yinc,
-                   const coordinate_type* z,
-                   const difference_type  zinc,
-                   const weight_type*     w,
-                   const difference_type  winc)
+RCB<A>::init(const size_type        local_count,
+             const coordinate_type* x,
+             const difference_type  xinc,
+             const coordinate_type* y,
+             const difference_type  yinc,
+             const coordinate_type* z,
+             const difference_type  zinc,
+             const weight_type*     w,
+             const difference_type  winc)
 {
     // Copy the Weights or assign 1
     std::vector<weight_type> weight(local_count, 1);
@@ -118,7 +118,7 @@ Partition<A>::init(const size_type        local_count,
         }
     }
 
-    // Build an RTree of Points to Partition
+    // Build an RTree of Points to RCB
     RTree rtree;
     for (size_type i = 0; i < local_count; ++i) {
         box_array point = { x[i * xinc], y[i * yinc], z[i * zinc] };
@@ -170,13 +170,12 @@ Partition<A>::init(const size_type        local_count,
         // - Find the weighted median
         // - Exchange & Average
         for (auto box_index = 0; box_index < boxes_to_split.size(); ++box_index) {
-
             // Get handle to this Box & calc partition fractions
-            const box_type& search_box = std::get<0>(boxes_to_split[box_index]);
-            const auto total_partition = std::get<1>(boxes_to_split[box_index]);
-            const auto small_partition = rank_type(total_partition / 2);
-            const auto large_partition = rank_type(total_partition - small_partition);
-            const auto ratio_partition = double(small_partition) / double(total_partition); // Used to split weights
+            const box_type& search_box      = std::get<0>(boxes_to_split[box_index]);
+            const auto      total_partition = std::get<1>(boxes_to_split[box_index]);
+            const auto      small_partition = rank_type(total_partition / 2);
+            const auto      large_partition = rank_type(total_partition - small_partition);
+            const auto      ratio_partition = double(small_partition) / double(total_partition);  // Used to split weights
 
             // Get all my points found within the box
             std::vector<index_type> contained_points;  // TODO: std::list might be faster
@@ -200,7 +199,8 @@ Partition<A>::init(const size_type        local_count,
             // - Use the ratio of the NRanks split to determine where the median should be
             //
             std::partial_sum(std::begin(contained_weights), std::end(contained_weights), std::begin(contained_weights));
-            auto median_iter  = std::upper_bound(std::begin(contained_weights), std::end(contained_weights), ratio_partition*contained_weights.back());
+            auto median_iter =
+                std::upper_bound(std::begin(contained_weights), std::end(contained_weights), ratio_partition * contained_weights.back());
             auto median_index = std::distance(std::begin(contained_weights), median_iter);
             auto median_value = contained_points[median_index].first.center(long_dim);
 
@@ -209,7 +209,6 @@ Partition<A>::init(const size_type        local_count,
             // const auto hgh_weight = contained_weights.back()-contained_weights[median_index];
             const auto total_weight = contained_weights.back();
             local_split_list.emplace_back(median_value * total_weight, total_weight);
-
         }
 
         // Reduce Across All Processors
@@ -264,7 +263,6 @@ Partition<A>::init(const size_type        local_count,
             else {
                 new_boxes_to_split.emplace_back(hgh_bound, large_partition);
             }
-
         }
         boxes_to_split = new_boxes_to_split;
     }
@@ -273,20 +271,19 @@ Partition<A>::init(const size_type        local_count,
     m_bounds.clear();
     m_bounds.reserve(final_boxes.size());
     std::copy(std::begin(final_boxes), std::end(final_boxes), std::back_inserter(m_bounds));
-
 }
 
 template<typename A>
 void
-Partition<A>::report(const size_type        local_count,
-                     const coordinate_type* x,
-                     const difference_type  xinc,
-                     const coordinate_type* y,
-                     const difference_type  yinc,
-                     const coordinate_type* z,
-                     const difference_type  zinc,
-                     const weight_type*     w,
-                     const difference_type  winc) const
+RCB<A>::report(const size_type        local_count,
+               const coordinate_type* x,
+               const difference_type  xinc,
+               const coordinate_type* y,
+               const difference_type  yinc,
+               const coordinate_type* z,
+               const difference_type  zinc,
+               const weight_type*     w,
+               const difference_type  winc) const
 {
     // Copy the Weights or assign 1
     std::vector<weight_type> weight(local_count, 1);
@@ -296,7 +293,7 @@ Partition<A>::report(const size_type        local_count,
         }
     }
 
-    // Build an RTree of Points to Partition
+    // Build an RTree of Points to RCB
     RTree rtree;
     for (size_type i = 0; i < local_count; ++i) {
         box_array point = { x[i * xinc], y[i * yinc], z[i * zinc] };
@@ -308,15 +305,14 @@ Partition<A>::report(const size_type        local_count,
     // - Find contained points
     // - Sum up total weights
     std::vector<weight_type> local_weight_total(m_bounds.size(), 0);
-    for(auto i = 0; i < m_bounds.size(); ++i){
-
+    for (auto i = 0; i < m_bounds.size(); ++i) {
         // Search R-Tree
         std::vector<index_type> contained_points;  // TODO: std::list might be faster
         using hopi::spatial::shared::predicate::ContainedByNonInclusive;
         rtree.query(ContainedByNonInclusive(m_bounds[i]), std::back_inserter(contained_points));
 
         // Sum up the Weights
-        for(auto n = 0; n < contained_points.size(); ++n ){
+        for (auto n = 0; n < contained_points.size(); ++n) {
             local_weight_total[i] += weight[contained_points[n].second];
         }
     }
@@ -339,7 +335,7 @@ Partition<A>::report(const size_type        local_count,
     if (m_comm.rank() == 0) {
         std::cout << "P:" << m_comm.rank() << "\n";
         std::cout << "    Total Bounds     = " << m_bounds.size() << "\n";
-        std::cout << "    Minimum Weight   = " << *minmax_weight.first  << "\n";
+        std::cout << "    Minimum Weight   = " << *minmax_weight.first << "\n";
         std::cout << "    Maximum Weight   = " << *minmax_weight.second << "\n";
         std::cout << "    Weight Ratio     = " << weight_ratio << "\n";
         std::cout << "    Weight Imbalance = " << weight_imbal << "\n";
