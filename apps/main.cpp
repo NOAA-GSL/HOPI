@@ -127,8 +127,20 @@ main(int argc, char* argv[])
     partitioner.part(data_adaptor, rank_for_each_point);
 
     // ----------------------------------------------------------
+    // Nearest Neighbor Search
+    // ----------------------------------------------------------
+    //
+    // - Determine which points we will need from other ranks
+    // - Determine which ranks to send our results back to (only if needed)
+    //
+    
+    // ----------------------------------------------------------
     // Build Gather/Scatter Data Structures
     // ----------------------------------------------------------
+    //
+    // - Build memory buffers 
+    // - - Each rank builds an array long enough to gather coordinates and values to be interpolated
+    // - - Each rank builds an array long enough to scatter our result back to who needs it (only if needed)
 
     GlobalExchange exchange(world);
     exchange.init(rank_for_each_point); // Maybe this should take RCB ?
